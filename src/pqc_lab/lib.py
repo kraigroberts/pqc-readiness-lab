@@ -45,7 +45,7 @@ def _load_liboqs() -> ctypes.CDLL | None:
         if custom_path.exists():
             lib_paths.insert(0, str(custom_path))
 
-    lib = None
+    lib: ctypes.CDLL | None = None
     for path in lib_paths:
         try:
             if Path(path).exists():
@@ -54,10 +54,10 @@ def _load_liboqs() -> ctypes.CDLL | None:
                 break
             else:
                 # Try to find library in system paths
-                lib = ctypes.util.find_library("oqs")
-                if lib:
-                    lib = ctypes.CDLL(lib)
-                    logger.info(f"Loaded liboqs from system: {lib}")
+                found_lib = ctypes.util.find_library("oqs")
+                if found_lib:
+                    lib = ctypes.CDLL(found_lib)
+                    logger.info(f"Loaded liboqs from system: {found_lib}")
                     break
         except (OSError, ImportError) as e:
             logger.debug(f"Failed to load liboqs from {path}: {e}")
@@ -230,7 +230,11 @@ def get_version() -> str:
         version_func = getattr(lib, "OQS_get_library_version", None)
         if version_func:
             version_func.restype = ctypes.c_char_p
-            return version_func().decode("utf-8")
+            result = version_func()
+            if result is not None:
+                decoded = result.decode("utf-8")
+                if isinstance(decoded, str):
+                    return decoded
     except Exception:
         pass
 

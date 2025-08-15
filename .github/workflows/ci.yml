@@ -27,16 +27,37 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential cmake git ninja-build libssl-dev pkg-config
 
-    - name: Build liboqs
+    - name: Cache liboqs
+      id: cache-liboqs
+      uses: actions/cache@v4
+      with:
+        path: |
+          /usr/local/lib/liboqs*
+          /usr/local/include/oqs
+          /usr/local/lib64/liboqs*
+        key: liboqs-${{ runner.os }}-${{ hashFiles('scripts/build_liboqs.sh') }}
+        restore-keys: |
+          liboqs-${{ runner.os }}-
+
+    - name: Build liboqs (if not cached)
+      if: steps.cache-liboqs.outputs.cache-hit != 'true'
       run: |
         chmod +x ./scripts/build_liboqs.sh
         ./scripts/build_liboqs.sh
 
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -e .
+        pip install --cache-dir ~/.cache/pip -r requirements.txt
+        pip install --cache-dir ~/.cache/pip -e .
 
     - name: Run tests
       run: |
@@ -64,7 +85,20 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential cmake git ninja-build libssl-dev pkg-config
 
-    - name: Build liboqs
+    - name: Cache liboqs
+      id: cache-liboqs-c
+      uses: actions/cache@v4
+      with:
+        path: |
+          /usr/local/lib/liboqs*
+          /usr/local/include/oqs
+          /usr/local/lib64/liboqs*
+        key: liboqs-${{ runner.os }}-${{ hashFiles('scripts/build_liboqs.sh') }}
+        restore-keys: |
+          liboqs-${{ runner.os }}-
+
+    - name: Build liboqs (if not cached)
+      if: steps.cache-liboqs-c.outputs.cache-hit != 'true'
       run: |
         chmod +x ./scripts/build_liboqs.sh
         ./scripts/build_liboqs.sh
