@@ -54,6 +54,23 @@ Modified the CMake configuration to only build the specific algorithms needed:
 - **Benefit**: More reliable artifact sharing between jobs
 - **Implementation**: Conditional artifact uploads and robust error handling
 
+### 5. Critical Workflow Fixes (`.github/workflows/ci.yml`)
+- **Problem 1**: Permission errors with `/usr/local/` cache paths
+  - **Solution**: Use workspace-relative paths (`${{ github.workspace }}/.cache/liboqs/`) for caching
+  - **Benefit**: No more "Permission denied" errors during cache restore
+
+- **Problem 2**: Broken quality check logic
+  - **Solution**: Removed complex conditional logic that was always evaluating to false
+  - **Benefit**: Tests now properly fail the job when they should
+
+- **Problem 3**: Complex artifact strategy conflicts
+  - **Solution**: Simplified to single artifact upload from cache directory
+  - **Benefit**: Consistent state between cache and artifacts
+
+- **Problem 4**: Path mismatch between cache and system installation
+  - **Solution**: Build to cache directory, then copy to system in build-c job
+  - **Benefit**: Clean separation of concerns and reliable installation
+
 ## Expected Results
 
 ### Before Optimization
