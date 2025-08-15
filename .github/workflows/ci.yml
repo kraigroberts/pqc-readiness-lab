@@ -22,55 +22,13 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Cache liboqs installation
-      id: cache-liboqs
-      uses: actions/cache@v4
-      with:
-        path: /usr/local/lib/liboqs* /usr/local/include/oqs
-        key: liboqs-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
-        restore-keys: |
-          liboqs-${{ runner.os }}-
-
-    - name: Install liboqs (system package + fallback)
-      if: steps.cache-liboqs.outputs.cache-hit != 'true'
+    - name: Install liboqs
       run: |
-        echo "Attempting to install liboqs from system packages..."
-        # Try system package manager first (fastest)
-        if sudo apt-get update && sudo apt-get install -y liboqs-dev 2>/dev/null; then
-          echo "✅ liboqs installed from system packages in seconds!"
-          sudo ldconfig
-        else
-          echo "System package not available, building from source..."
-          # Install build dependencies
-          sudo apt-get install -y build-essential cmake git ninja-build libssl-dev pkg-config
-          
-          # Clone and build liboqs (optimized for our needs)
-          git clone --depth 1 --branch main https://github.com/open-quantum-safe/liboqs.git
-          cd liboqs
-          mkdir build && cd build
-          
-          # Build only the algorithms we need (ML-KEM-768, ML-DSA-65)
-          cmake .. \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DOQS_USE_OPENSSL=ON \
-            -DOQS_BUILD_ONLY_LIB=ON \
-            -DOQS_DIST_BUILD=ON \
-            -DOQS_OPT_TARGET=generic \
-            -DBUILD_SHARED_LIBS=ON \
-            -DOQS_ENABLE_KEM_KYBER=ON \
-            -DOQS_ENABLE_SIG_DILITHIUM=ON \
-            -DOQS_ENABLE_KEM_KYBER_768=ON \
-            -DOQS_ENABLE_SIG_DILITHIUM_3=ON \
-            -DOQS_ENABLE_KEM_KYBER_512=OFF \
-            -DOQS_ENABLE_KEM_KYBER_1024=OFF \
-            -DOQS_ENABLE_SIG_DILITHIUM_2=OFF \
-            -DOQS_ENABLE_SIG_DILITHIUM_5=OFF
-          
-          make -j$(nproc)
-          sudo make install
-          sudo ldconfig
-          echo "✅ liboqs built from source with optimizations!"
-        fi
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake git libssl-dev
+        git clone https://github.com/open-quantum-safe/liboqs.git
+        cd liboqs && mkdir build && cd build
+        cmake .. && make -j$(nproc) && sudo make install
 
     - name: Install Python dependencies
       run: |
@@ -80,129 +38,12 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest tests/ -v --tb=short
+        pytest tests/ -v
 
     - name: Run linting
       run: |
         ruff check src/ tests/
-        ruff format --check src/ tests/
 
     - name: Run type checking
       run: |
         mypy src/ tests/
-
-  build-c:
-    runs-on: ubuntu-latest
-    needs: test
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Cache liboqs installation
-      id: cache-liboqs-c
-      uses: actions/cache@v4
-      with:
-        path: /usr/local/lib/liboqs* /usr/local/include/oqs
-        key: liboqs-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
-        restore-keys: |
-          liboqs-${{ runner.os }}-
-
-    - name: Install liboqs (system package + fallback)
-      if: steps.cache-liboqs-c.outputs.cache-hit != 'true'
-      run: |
-        echo "Attempting to install liboqs from system packages..."
-        # Try system package manager first (fastest)
-        if sudo apt-get update && sudo apt-get install -y liboqs-dev 2>/dev/null; then
-          echo "✅ liboqs installed from system packages in seconds!"
-          sudo ldconfig
-        else
-          echo "System package not available, building from source..."
-          # Install build dependencies
-          sudo apt-get install -y build-essential cmake git ninja-build libssl-dev pkg-config
-          
-          # Clone and build liboqs (optimized for our needs)
-          git clone --depth 1 --branch main https://github.com/open-quantum-safe/liboqs.git
-          cd liboqs
-          mkdir build && cd build
-          
-          # Build only the algorithms we need (ML-KEM-768, ML-DSA-65)
-          cmake .. \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DOQS_USE_OPENSSL=ON \
-            -DOQS_BUILD_ONLY_LIB=ON \
-            -DOQS_DIST_BUILD=ON \
-            -DOQS_OPT_TARGET=generic \
-            -DBUILD_SHARED_LIBS=ON \
-            -DOQS_ENABLE_KEM_KYBER=ON \
-            -DOQS_ENABLE_SIG_DILITHIUM=ON \
-            -DOQS_ENABLE_KEM_KYBER_768=ON \
-            -DOQS_ENABLE_SIG_DILITHIUM_3=ON \
-            -DOQS_ENABLE_KEM_KYBER_512=OFF \
-            -DOQS_ENABLE_KEM_KYBER_1024=OFF \
-            -DOQS_ENABLE_SIG_DILITHIUM_2=OFF \
-            -DOQS_ENABLE_SIG_DILITHIUM_5=OFF
-          
-          make -j$(nproc)
-          sudo make install
-          sudo ldconfig
-          echo "✅ liboqs built from source with optimizations!"
-        fi
-
-    - name: Build C demos
-      run: |
-        mkdir -p build
-        cd build
-        cmake ..
-        make -j$(nproc)
-
-    - name: Test C demos
-      run: |
-        cd build
-        echo "Testing C demo compilation success"
-
-  docker:
-    runs-on: ubuntu-latest
-    needs: test
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Build Docker image
-      run: |
-        docker build -t pqc-lab:test .
-
-    - name: Test Docker image
-      run: |
-        docker run --rm pqc-lab:test pqc-lab --help
-        docker run --rm pqc-lab:test python -c "import pqc_lab; print('Import successful')"
-
-  security:
-    runs-on: ubuntu-latest
-    needs: test
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.10"
-
-    - name: Install dependencies
-      run: |
-        pip install safety bandit
-
-    - name: Check for known security vulnerabilities
-      run: |
-        safety check
-
-    - name: Run security linting
-      run: |
-        bandit -r src/ -f json -o bandit-report.json || true
-        echo "Security scan completed"

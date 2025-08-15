@@ -1,33 +1,26 @@
-# Simple Dockerfile using official liboqs image - no more over-engineering!
-FROM openquantumsafe/liboqs:latest
+# Simple Dockerfile - no over-engineering
+FROM python:3.10-slim
 
-# Install Python
+# Install liboqs
 RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    python3-venv \
-    && rm -rf /var/lib/apt/lists/*
+    build-essential cmake git libssl-dev \
+    && git clone https://github.com/open-quantum-safe/liboqs.git \
+    && cd liboqs && mkdir build && cd build \
+    && cmake .. && make -j$(nproc) && make install \
+    && ldconfig \
+    && rm -rf /var/lib/apt/lists/* /tmp/*
 
 # Set working directory
 WORKDIR /app
 
-# Copy Python requirements and install
+# Copy and install requirements
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
-# Copy source code
+# Copy source and install
 COPY src/ ./src/
 COPY pyproject.toml .
-
-# Install the package
-RUN pip3 install -e .
-
-# Create artifacts directory
-RUN mkdir -p artifacts
-
-# Set environment variables
-ENV PYTHONPATH=/app/src
-ENV LD_LIBRARY_PATH=/usr/local/lib
+RUN pip install -e .
 
 # Default command
 ENTRYPOINT ["pqc-lab"]
