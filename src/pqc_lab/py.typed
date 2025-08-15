@@ -1,0 +1,3 @@
+# This file indicates that the pqc_lab package supports type checking
+# The presence of this file tells mypy and other type checkers that
+# the package is typed and should be type-checked.
