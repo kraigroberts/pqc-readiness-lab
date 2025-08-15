@@ -1,6 +1,5 @@
 """Smoke tests for PQC Readiness Lab package."""
 
-import pytest
 from pqc_lab import __version__, config, lib
 
 
@@ -35,7 +34,7 @@ def test_lib_capabilities():
     # but should not crash
     kems = lib.get_supported_kems()
     sigs = lib.get_supported_sigs()
-    
+
     assert isinstance(kems, list)
     assert isinstance(sigs, list)
 
@@ -44,7 +43,7 @@ def test_version_info():
     """Test version information."""
     version = lib.get_version()
     assert isinstance(version, str)
-    
+
     # Version should be either "unknown" or a valid version string
     assert version == "unknown" or len(version) > 0
 
@@ -74,7 +73,7 @@ def test_benchmark_config():
 if __name__ == "__main__":
     # Basic smoke test runner
     print("Running PQC Lab smoke tests...")
-    
+
     test_package_import()
     test_config_import()
     test_lib_import()
@@ -84,5 +83,5 @@ if __name__ == "__main__":
     test_artifacts_directory()
     test_network_config()
     test_benchmark_config()
-    
+
     print("All smoke tests passed!")

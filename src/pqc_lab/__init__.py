@@ -8,7 +8,6 @@ __version__ = "0.1.0"
 __author__ = "Your Name"
 __email__ = "your.email@example.com"
 
-from . import config
-from . import lib
+from . import config, lib
 
 __all__ = ["__version__", "__author__", "__email__", "config", "lib"]

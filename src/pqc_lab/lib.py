@@ -8,14 +8,13 @@ import ctypes
 import ctypes.util
 import logging
 from pathlib import Path
-from typing import Optional, Tuple
 
 from . import config
 
 logger = logging.getLogger(__name__)
 
 # liboqs library handle
-_liboqs_lib: Optional[ctypes.CDLL] = None
+_liboqs_lib: ctypes.CDLL | None = None
 
 
 class LibOQSError(Exception):
@@ -23,13 +22,13 @@ class LibOQSError(Exception):
     pass
 
 
-def _load_liboqs() -> Optional[ctypes.CDLL]:
+def _load_liboqs() -> ctypes.CDLL | None:
     """Load the liboqs library."""
     global _liboqs_lib
-    
+
     if _liboqs_lib is not None:
         return _liboqs_lib
-    
+
     # Try to find liboqs in common locations
     lib_paths = [
         "liboqs",
@@ -38,13 +37,13 @@ def _load_liboqs() -> Optional[ctypes.CDLL]:
         "/usr/lib/liboqs.so",
         "/usr/lib/liboqs.dylib",
     ]
-    
+
     # Add custom path if specified
     if config.config.liboqs_path:
         custom_path = config.config.liboqs_path / "lib" / "liboqs.so"
         if custom_path.exists():
             lib_paths.insert(0, str(custom_path))
-    
+
     lib = None
     for path in lib_paths:
         try:
@@ -62,27 +61,27 @@ def _load_liboqs() -> Optional[ctypes.CDLL]:
         except (OSError, ImportError) as e:
             logger.debug(f"Failed to load liboqs from {path}: {e}")
             continue
-    
+
     if lib is None:
         logger.warning("Could not load liboqs library. PQC operations will not be available.")
         return None
-    
+
     # Set function signatures for common liboqs functions
     try:
         # KEM functions
         lib.OQS_KEM_new.argtypes = [ctypes.c_char_p]
         lib.OQS_KEM_new.restype = ctypes.c_void_p
-        
+
         lib.OQS_KEM_free.argtypes = [ctypes.c_void_p]
         lib.OQS_KEM_free.restype = None
-        
+
         lib.OQS_KEM_keypair.argtypes = [
             ctypes.c_void_p,  # kem
             ctypes.POINTER(ctypes.c_uint8),  # public_key
             ctypes.POINTER(ctypes.c_uint8),  # secret_key
         ]
         lib.OQS_KEM_keypair.restype = ctypes.c_int
-        
+
         lib.OQS_KEM_encaps.argtypes = [
             ctypes.c_void_p,  # kem
             ctypes.POINTER(ctypes.c_uint8),  # ciphertext
@@ -90,7 +89,7 @@ def _load_liboqs() -> Optional[ctypes.CDLL]:
             ctypes.POINTER(ctypes.c_uint8),  # public_key
         ]
         lib.OQS_KEM_encaps.restype = ctypes.c_int
-        
+
         lib.OQS_KEM_decaps.argtypes = [
             ctypes.c_void_p,  # kem
             ctypes.POINTER(ctypes.c_uint8),  # shared_secret
@@ -98,21 +97,21 @@ def _load_liboqs() -> Optional[ctypes.CDLL]:
             ctypes.POINTER(ctypes.c_uint8),  # secret_key
         ]
         lib.OQS_KEM_decaps.restype = ctypes.c_int
-        
+
         # DSA functions
         lib.OQS_SIG_new.argtypes = [ctypes.c_char_p]
         lib.OQS_SIG_new.restype = ctypes.c_void_p
-        
+
         lib.OQS_SIG_free.argtypes = [ctypes.c_void_p]
         lib.OQS_SIG_free.restype = None
-        
+
         lib.OQS_SIG_keypair.argtypes = [
             ctypes.c_void_p,  # sig
             ctypes.POINTER(ctypes.c_uint8),  # public_key
             ctypes.POINTER(ctypes.c_uint8),  # secret_key
         ]
         lib.OQS_SIG_keypair.restype = ctypes.c_int
-        
+
         lib.OQS_SIG_sign.argtypes = [
             ctypes.c_void_p,  # sig
             ctypes.POINTER(ctypes.c_uint8),  # signature
@@ -122,7 +121,7 @@ def _load_liboqs() -> Optional[ctypes.CDLL]:
             ctypes.POINTER(ctypes.c_uint8),  # secret_key
         ]
         lib.OQS_SIG_sign.restype = ctypes.c_int
-        
+
         lib.OQS_SIG_verify.argtypes = [
             ctypes.c_void_p,  # sig
             ctypes.POINTER(ctypes.c_uint8),  # message
@@ -132,17 +131,17 @@ def _load_liboqs() -> Optional[ctypes.CDLL]:
             ctypes.POINTER(ctypes.c_uint8),  # public_key
         ]
         lib.OQS_SIG_verify.restype = ctypes.c_int
-        
+
         logger.info("Successfully configured liboqs function signatures")
-        
+
     except AttributeError as e:
         logger.warning(f"Could not configure all liboqs functions: {e}")
-    
+
     _liboqs_lib = lib
     return lib
 
 
-def get_liboqs() -> Optional[ctypes.CDLL]:
+def get_liboqs() -> ctypes.CDLL | None:
     """Get the loaded liboqs library instance."""
     return _load_liboqs()
 
@@ -157,7 +156,7 @@ def get_supported_kems() -> list[str]:
     lib = get_liboqs()
     if lib is None:
         return []
-    
+
     # For now, return the configured algorithms
     # In a full implementation, this would query liboqs
     return config.get_kem_algorithms()
@@ -168,18 +167,18 @@ def get_supported_sigs() -> list[str]:
     lib = get_liboqs()
     if lib is None:
         return []
-    
+
     # For now, return the configured algorithms
     # In a full implementation, this would query liboqs
     return config.get_dsa_algorithms()
 
 
-def get_kem_details(alg_name: str) -> Optional[dict]:
+def get_kem_details(alg_name: str) -> dict | None:
     """Get details about a KEM algorithm."""
     lib = get_liboqs()
     if lib is None:
         return None
-    
+
     # For now, return basic information
     # In a full implementation, this would query liboqs
     if alg_name in get_supported_kems():
@@ -189,16 +188,16 @@ def get_kem_details(alg_name: str) -> Optional[dict]:
             "claimed_nist_level": 1 if "512" in alg_name else (2 if "768" in alg_name else 3),
             "is_ind_cca": True,
         }
-    
+
     return None
 
 
-def get_sig_details(alg_name: str) -> Optional[dict]:
+def get_sig_details(alg_name: str) -> dict | None:
     """Get details about a signature algorithm."""
     lib = get_liboqs()
     if lib is None:
         return None
-    
+
     # For now, return basic information
     # In a full implementation, this would query liboqs
     if alg_name in get_supported_sigs():
@@ -208,7 +207,7 @@ def get_sig_details(alg_name: str) -> Optional[dict]:
             "claimed_nist_level": 1 if "44" in alg_name else (2 if "65" in alg_name else 3),
             "is_euf_cma": True,
         }
-    
+
     return None
 
 
@@ -218,7 +217,7 @@ def get_version() -> str:
     lib = get_liboqs()
     if lib is None:
         return "unknown"
-    
+
     try:
         # Try to get version from liboqs
         version_func = getattr(lib, "OQS_get_library_version", None)
@@ -227,7 +226,7 @@ def get_version() -> str:
             return version_func().decode('utf-8')
     except Exception:
         pass
-    
+
     return "unknown"
 
 
@@ -236,9 +235,9 @@ def get_enabled_features() -> list[str]:
     lib = get_liboqs()
     if lib is None:
         return []
-    
+
     features = []
-    
+
     # Check for OpenSSL integration
     if config.config.enable_openssl:
         try:
@@ -249,11 +248,11 @@ def get_enabled_features() -> list[str]:
                 features.append("OpenSSL-3.0")
         except Exception:
             pass
-    
+
     # Check for specific algorithm families
     if get_supported_kems():
         features.append("KEM")
     if get_supported_sigs():
         features.append("DSA")
-    
+
     return features
