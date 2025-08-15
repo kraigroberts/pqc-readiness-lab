@@ -45,6 +45,15 @@ Modified the CMake configuration to only build the specific algorithms needed:
 - **Benefit**: Eliminates redundant compilation, further reducing CI time
 - **Implementation**: Uses GitHub Actions artifacts to share built libraries between jobs
 
+### 4. Improved Artifact Reliability (`.github/workflows/ci.yml`)
+- **Problem**: Artifact download failures causing build-c job to fail
+- **Solution**: 
+  - Artifacts uploaded immediately after liboqs build (before tests)
+  - Test steps use `continue-on-error: true` to ensure artifacts are always uploaded
+  - Final step checks all quality check results and fails job if needed
+- **Benefit**: More reliable artifact sharing between jobs
+- **Implementation**: Conditional artifact uploads and robust error handling
+
 ## Expected Results
 
 ### Before Optimization

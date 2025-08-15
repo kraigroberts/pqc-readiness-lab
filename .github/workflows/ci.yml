@@ -49,6 +49,20 @@ jobs:
 
     - name: Upload liboqs artifacts
       # Share built liboqs with build-c job to avoid duplicate builds
+      # Upload immediately after build, regardless of test results
+      if: always() && steps.cache-liboqs.outputs.cache-hit != 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: liboqs-built
+        path: |
+          /usr/local/lib/liboqs*
+          /usr/local/include/oqs
+          /usr/local/lib64/liboqs*
+        retention-days: 1
+
+    - name: Upload liboqs artifacts (from cache)
+      # Also upload cached liboqs for consistency
+      if: always() && steps.cache-liboqs.outputs.cache-hit == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: liboqs-built
@@ -73,17 +87,32 @@ jobs:
         pip install --cache-dir ~/.cache/pip -e .
 
     - name: Run tests
+      id: run-tests
+      continue-on-error: true
       run: |
         pytest tests/ -v --tb=short
 
     - name: Run linting
+      id: run-linting
+      continue-on-error: true
       run: |
         ruff check src/ tests/
         ruff format --check src/ tests/
 
     - name: Run type checking
+      id: run-type-checking
+      continue-on-error: true
       run: |
         mypy src/ tests/
+
+    - name: Check test results
+      run: |
+        echo "Checking results of all quality checks..."
+        if [ "${{ steps.run-tests.outputs.exit-code }}" != "0" ] || [ "${{ steps.run-linting.outputs.exit-code }}" != "0" ] || [ "${{ steps.run-type-checking.outputs.exit-code }}" != "0" ]; then
+          echo "Some quality checks failed. Job will fail but artifacts were uploaded."
+          exit 1
+        fi
+        echo "All quality checks passed!"
 
   build-c:
     runs-on: ubuntu-latest
@@ -108,9 +137,28 @@ jobs:
     - name: Verify liboqs installation
       run: |
         echo "Verifying liboqs installation from artifacts..."
-        ls -la /usr/local/lib/liboqs* || echo "No liboqs libraries found"
-        ls -la /usr/local/include/oqs/ || echo "No liboqs headers found"
+        if [ ! -f "/usr/local/lib/liboqs.so" ] && [ ! -f "/usr/local/lib64/liboqs.so" ]; then
+          echo "ERROR: liboqs library not found in artifacts!"
+          echo "Available files in /usr/local/lib/:"
+          ls -la /usr/local/lib/ || echo "Directory not accessible"
+          echo "Available files in /usr/local/lib64/:"
+          ls -la /usr/local/lib64/ || echo "Directory not accessible"
+          exit 1
+        fi
+        echo "liboqs libraries found successfully"
+        ls -la /usr/local/lib/liboqs* /usr/local/lib64/liboqs* 2>/dev/null || echo "No additional liboqs libraries"
+        
+        if [ ! -d "/usr/local/include/oqs" ]; then
+          echo "ERROR: liboqs headers not found in artifacts!"
+          echo "Available files in /usr/local/include/:"
+          ls -la /usr/local/include/ || echo "Directory not accessible"
+          exit 1
+        fi
+        echo "liboqs headers found successfully"
+        ls -la /usr/local/include/oqs/
+        
         if command -v ldconfig &> /dev/null; then
+          echo "Updating library cache..."
           sudo ldconfig
         fi
 
