@@ -11,13 +11,13 @@ def test_package_import():
 def test_config_import():
     """Test that configuration module can be imported."""
     assert config is not None
-    assert hasattr(config, 'config')
+    assert hasattr(config, "config")
 
 
 def test_lib_import():
     """Test that liboqs wrapper module can be imported."""
     assert lib is not None
-    assert hasattr(lib, 'is_available')
+    assert hasattr(lib, "is_available")
 
 
 def test_basic_configuration():

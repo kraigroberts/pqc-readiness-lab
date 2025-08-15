@@ -19,6 +19,7 @@ _liboqs_lib: ctypes.CDLL | None = None
 
 class LibOQSError(Exception):
     """Exception raised for liboqs errors."""
+
     pass
 
 
@@ -63,7 +64,9 @@ def _load_liboqs() -> ctypes.CDLL | None:
             continue
 
     if lib is None:
-        logger.warning("Could not load liboqs library. PQC operations will not be available.")
+        logger.warning(
+            "Could not load liboqs library. PQC operations will not be available."
+        )
         return None
 
     # Set function signatures for common liboqs functions
@@ -185,7 +188,9 @@ def get_kem_details(alg_name: str) -> dict | None:
         return {
             "name": alg_name,
             "type": "KEM",
-            "claimed_nist_level": 1 if "512" in alg_name else (2 if "768" in alg_name else 3),
+            "claimed_nist_level": (
+                1 if "512" in alg_name else (2 if "768" in alg_name else 3)
+            ),
             "is_ind_cca": True,
         }
 
@@ -204,7 +209,9 @@ def get_sig_details(alg_name: str) -> dict | None:
         return {
             "name": alg_name,
             "type": "DSA",
-            "claimed_nist_level": 1 if "44" in alg_name else (2 if "65" in alg_name else 3),
+            "claimed_nist_level": (
+                1 if "44" in alg_name else (2 if "65" in alg_name else 3)
+            ),
             "is_euf_cma": True,
         }
 
@@ -223,7 +230,7 @@ def get_version() -> str:
         version_func = getattr(lib, "OQS_get_library_version", None)
         if version_func:
             version_func.restype = ctypes.c_char_p
-            return version_func().decode('utf-8')
+            return version_func().decode("utf-8")
     except Exception:
         pass
 
@@ -242,9 +249,9 @@ def get_enabled_features() -> list[str]:
     if config.config.enable_openssl:
         try:
             # Try to detect OpenSSL integration
-            if hasattr(lib, 'OQS_OPENSSL_1_1_1_loaded'):
+            if hasattr(lib, "OQS_OPENSSL_1_1_1_loaded"):
                 features.append("OpenSSL-1.1.1")
-            elif hasattr(lib, 'OQS_OPENSSL_3_0_loaded'):
+            elif hasattr(lib, "OQS_OPENSSL_3_0_loaded"):
                 features.append("OpenSSL-3.0")
         except Exception:
             pass

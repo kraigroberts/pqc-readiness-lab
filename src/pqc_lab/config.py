@@ -11,13 +11,13 @@ class AlgorithmConfig(BaseModel):
     # KEM algorithms
     kem_algorithms: list[str] = Field(
         default=["ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"],
-        description="Supported KEM algorithms"
+        description="Supported KEM algorithms",
     )
 
     # DSA algorithms
     dsa_algorithms: list[str] = Field(
         default=["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"],
-        description="Supported DSA algorithms"
+        description="Supported DSA algorithms",
     )
 
     # Default algorithms
@@ -28,8 +28,12 @@ class AlgorithmConfig(BaseModel):
 class NetworkConfig(BaseModel):
     """Configuration for network operations."""
 
-    default_host: str = Field(default="127.0.0.1", description="Default host for network operations")
-    default_port: int = Field(default=5555, description="Default port for network operations")
+    default_host: str = Field(
+        default="127.0.0.1", description="Default host for network operations"
+    )
+    default_port: int = Field(
+        default=5555, description="Default port for network operations"
+    )
     timeout: float = Field(default=30.0, description="Network timeout in seconds")
     buffer_size: int = Field(default=4096, description="Network buffer size")
 
@@ -37,20 +41,34 @@ class NetworkConfig(BaseModel):
 class BenchmarkConfig(BaseModel):
     """Configuration for benchmarking operations."""
 
-    default_iterations: int = Field(default=100, description="Default benchmark iterations")
-    warmup_iterations: int = Field(default=10, description="Warmup iterations before timing")
+    default_iterations: int = Field(
+        default=100, description="Default benchmark iterations"
+    )
+    warmup_iterations: int = Field(
+        default=10, description="Warmup iterations before timing"
+    )
     output_format: str = Field(default="json", description="Benchmark output format")
-    save_results: bool = Field(default=True, description="Save benchmark results to file")
+    save_results: bool = Field(
+        default=True, description="Save benchmark results to file"
+    )
 
 
 class FileConfig(BaseModel):
     """Configuration for file operations."""
 
-    artifacts_dir: Path = Field(default=Path("artifacts"), description="Directory for artifacts")
+    artifacts_dir: Path = Field(
+        default=Path("artifacts"), description="Directory for artifacts"
+    )
     key_prefix: str = Field(default="pqc", description="Prefix for generated keys")
-    signature_extension: str = Field(default=".sig", description="Extension for signature files")
-    public_key_extension: str = Field(default=".pub", description="Extension for public key files")
-    private_key_extension: str = Field(default=".priv", description="Extension for private key files")
+    signature_extension: str = Field(
+        default=".sig", description="Extension for signature files"
+    )
+    public_key_extension: str = Field(
+        default=".pub", description="Extension for public key files"
+    )
+    private_key_extension: str = Field(
+        default=".priv", description="Extension for private key files"
+    )
 
 
 class Config(BaseModel):
@@ -62,7 +80,9 @@ class Config(BaseModel):
     file: FileConfig = Field(default_factory=FileConfig)
 
     # liboqs configuration
-    liboqs_path: Path | None = Field(default=None, description="Path to liboqs installation")
+    liboqs_path: Path | None = Field(
+        default=None, description="Path to liboqs installation"
+    )
     enable_openssl: bool = Field(default=True, description="Enable OpenSSL integration")
 
     # Logging
@@ -71,12 +91,14 @@ class Config(BaseModel):
 
     class Config:
         """Pydantic configuration."""
+
         validate_assignment = True
         extra = "forbid"
 
 
 # Global configuration instance
 config = Config()
+
 
 # Convenience accessors
 def get_kem_algorithms() -> list[str]:
