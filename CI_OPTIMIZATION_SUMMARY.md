@@ -39,6 +39,12 @@ Modified the CMake configuration to only build the specific algorithms needed:
 - Added fallback to previous cache keys for backward compatibility
 - Added documentation comments explaining the optimization
 
+### 3. Eliminated Duplicate Builds (`.github/workflows/ci.yml`)
+- **Before**: Both `test` and `build-c` jobs built liboqs separately
+- **After**: `test` job builds liboqs and uploads as artifact, `build-c` job downloads it
+- **Benefit**: Eliminates redundant compilation, further reducing CI time
+- **Implementation**: Uses GitHub Actions artifacts to share built libraries between jobs
+
 ## Expected Results
 
 ### Before Optimization
@@ -50,6 +56,11 @@ Modified the CMake configuration to only build the specific algorithms needed:
 - **Expected total CI time**: ~2m 30s (50% reduction)
 - **Expected liboqs build time**: ~1m 30s (50% reduction)
 - **Builds**: Only 2 required algorithms
+
+### After Artifact Optimization (Additional)
+- **Expected total CI time**: ~2m 15s (55% reduction)
+- **Expected liboqs build time**: ~1m 30s (only once in test job)
+- **Builds**: Only 2 required algorithms, built only once
 
 ### Cache Benefits
 - **First run**: Faster build due to reduced algorithm count

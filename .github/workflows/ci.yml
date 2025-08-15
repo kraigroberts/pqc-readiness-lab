@@ -47,6 +47,17 @@ jobs:
         chmod +x ./scripts/build_liboqs.sh
         ./scripts/build_liboqs.sh
 
+    - name: Upload liboqs artifacts
+      # Share built liboqs with build-c job to avoid duplicate builds
+      uses: actions/upload-artifact@v4
+      with:
+        name: liboqs-built
+        path: |
+          /usr/local/lib/liboqs*
+          /usr/local/include/oqs
+          /usr/local/lib64/liboqs*
+        retention-days: 1
+
     - name: Cache pip dependencies
       uses: actions/cache@v4
       with:
@@ -77,6 +88,7 @@ jobs:
   build-c:
     runs-on: ubuntu-latest
     needs: test
+    # OPTIMIZED: Uses liboqs artifacts from test job instead of rebuilding
 
     steps:
     - name: Checkout code
@@ -87,25 +99,20 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y build-essential cmake git ninja-build libssl-dev pkg-config
 
-    - name: Cache liboqs
-      id: cache-liboqs-c
-      uses: actions/cache@v4
+    - name: Download liboqs artifacts
+      uses: actions/download-artifact@v4
       with:
-        path: |
-          /usr/local/lib/liboqs*
-          /usr/local/include/oqs
-          /usr/local/lib64/liboqs*
-        key: liboqs-optimized-${{ runner.os }}-${{ hashFiles('scripts/build_liboqs.sh') }}
-        restore-keys: |
-          liboqs-optimized-${{ runner.os }}-
-          liboqs-${{ runner.os }}-
+        name: liboqs-built
+        path: /usr/local/
 
-    - name: Build liboqs (if not cached)
-      # OPTIMIZED: Only builds ML-KEM-768 and ML-DSA-65 for faster CI builds
-      if: steps.cache-liboqs-c.outputs.cache-hit != 'true'
+    - name: Verify liboqs installation
       run: |
-        chmod +x ./scripts/build_liboqs.sh
-        ./scripts/build_liboqs.sh
+        echo "Verifying liboqs installation from artifacts..."
+        ls -la /usr/local/lib/liboqs* || echo "No liboqs libraries found"
+        ls -la /usr/local/include/oqs/ || echo "No liboqs headers found"
+        if command -v ldconfig &> /dev/null; then
+          sudo ldconfig
+        fi
 
     - name: Build C demos
       run: |
