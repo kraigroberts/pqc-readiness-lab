@@ -35,11 +35,13 @@ jobs:
           /usr/local/lib/liboqs*
           /usr/local/include/oqs
           /usr/local/lib64/liboqs*
-        key: liboqs-${{ runner.os }}-${{ hashFiles('scripts/build_liboqs.sh') }}
+        key: liboqs-optimized-${{ runner.os }}-${{ hashFiles('scripts/build_liboqs.sh') }}
         restore-keys: |
+          liboqs-optimized-${{ runner.os }}-
           liboqs-${{ runner.os }}-
 
     - name: Build liboqs (if not cached)
+      # OPTIMIZED: Only builds ML-KEM-768 and ML-DSA-65 for faster CI builds
       if: steps.cache-liboqs.outputs.cache-hit != 'true'
       run: |
         chmod +x ./scripts/build_liboqs.sh
@@ -93,11 +95,13 @@ jobs:
           /usr/local/lib/liboqs*
           /usr/local/include/oqs
           /usr/local/lib64/liboqs*
-        key: liboqs-${{ runner.os }}-${{ hashFiles('scripts/build_liboqs.sh') }}
+        key: liboqs-optimized-${{ runner.os }}-${{ hashFiles('scripts/build_liboqs.sh') }}
         restore-keys: |
+          liboqs-optimized-${{ runner.os }}-
           liboqs-${{ runner.os }}-
 
     - name: Build liboqs (if not cached)
+      # OPTIMIZED: Only builds ML-KEM-768 and ML-DSA-65 for faster CI builds
       if: steps.cache-liboqs-c.outputs.cache-hit != 'true'
       run: |
         chmod +x ./scripts/build_liboqs.sh

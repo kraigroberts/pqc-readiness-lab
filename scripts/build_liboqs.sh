@@ -2,6 +2,7 @@
 
 # Build script for Open Quantum Safe (liboqs) library
 # This script clones and builds liboqs from source
+# OPTIMIZED: Only builds ML-KEM-768 (Kyber) and ML-DSA-65 (Dilithium) for faster CI builds
 
 set -euo pipefail
 
@@ -100,7 +101,7 @@ clone_liboqs() {
 }
 
 build_liboqs() {
-    log_info "Building liboqs..."
+    log_info "Building liboqs with only required algorithms (ML-KEM-768, ML-DSA-65)..."
     
     cd liboqs
     
@@ -108,8 +109,8 @@ build_liboqs() {
     mkdir -p "$BUILD_DIR"
     cd "$BUILD_DIR"
     
-    # Configure with CMake
-    log_info "Configuring with CMake..."
+    # Configure with CMake - only build the specific algorithms we need
+    log_info "Configuring with CMake (optimized for ML-KEM-768 and ML-DSA-65)..."
     cmake .. \
         -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
         -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
@@ -117,7 +118,32 @@ build_liboqs() {
         -DOQS_BUILD_ONLY_LIB=ON \
         -DOQS_DIST_BUILD=ON \
         -DOQS_OPT_TARGET=generic \
-        -DBUILD_SHARED_LIBS=ON
+        -DBUILD_SHARED_LIBS=ON \
+        -DOQS_ENABLE_KEM_KYBER=ON \
+        -DOQS_ENABLE_SIG_DILITHIUM=ON \
+        -DOQS_ENABLE_KEM_KYBER_512=OFF \
+        -DOQS_ENABLE_KEM_KYBER_768=ON \
+        -DOQS_ENABLE_KEM_KYBER_1024=OFF \
+        -DOQS_ENABLE_SIG_DILITHIUM_2=OFF \
+        -DOQS_ENABLE_SIG_DILITHIUM_3=ON \
+        -DOQS_ENABLE_SIG_DILITHIUM_5=OFF \
+        -DOQS_ENABLE_KEM_CLASSIC_MCELIECE=OFF \
+        -DOQS_ENABLE_KEM_HQC=OFF \
+        -DOQS_ENABLE_KEM_BIKE=OFF \
+        -DOQS_ENABLE_KEM_FRODO=OFF \
+        -DOQS_ENABLE_KEM_SABER=OFF \
+        -DOQS_ENABLE_KEM_NTRU=OFF \
+        -DOQS_ENABLE_KEM_SIKE=OFF \
+        -DOQS_ENABLE_SIG_FALCON=OFF \
+        -DOQS_ENABLE_SIG_SPHINCS=OFF \
+        -DOQS_ENABLE_SIG_RAINBOW=OFF \
+        -DOQS_ENABLE_SIG_PICNIC=OFF \
+        -DOQS_ENABLE_SIG_QTESLA=OFF \
+        -DOQS_ENABLE_SIG_GEMMS=OFF \
+        -DOQS_ENABLE_SIG_LEDACRYPT=OFF \
+        -DOQS_ENABLE_SIG_ED25519=OFF \
+        -DOQS_ENABLE_SIG_ECDSA=OFF \
+        -DOQS_ENABLE_SIG_RSA=OFF
     
     # Build
     log_info "Building with $PARALLEL_JOBS parallel jobs..."
@@ -134,7 +160,7 @@ build_liboqs() {
     fi
     
     cd ../..
-    log_success "liboqs built and installed successfully"
+    log_success "liboqs built and installed successfully (optimized build)"
 }
 
 verify_installation() {
