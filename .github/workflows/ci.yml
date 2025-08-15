@@ -22,13 +22,55 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install liboqs (pre-built package)
+    - name: Cache liboqs installation
+      id: cache-liboqs
+      uses: actions/cache@v4
+      with:
+        path: /usr/local/lib/liboqs* /usr/local/include/oqs
+        key: liboqs-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          liboqs-${{ runner.os }}-
+
+    - name: Install liboqs (system package + fallback)
+      if: steps.cache-liboqs.outputs.cache-hit != 'true'
       run: |
-        # Download and install pre-built liboqs - much faster than building from source!
-        wget https://github.com/open-quantum-safe/liboqs/releases/download/v0.8.0/liboqs-0.8.0-linux-x64.tar.gz
-        sudo tar -xzf liboqs-0.8.0-linux-x64.tar.gz -C /usr/local
-        sudo ldconfig
-        echo "liboqs installed in 30 seconds instead of 3+ minutes!"
+        echo "Attempting to install liboqs from system packages..."
+        # Try system package manager first (fastest)
+        if sudo apt-get update && sudo apt-get install -y liboqs-dev 2>/dev/null; then
+          echo "✅ liboqs installed from system packages in seconds!"
+          sudo ldconfig
+        else
+          echo "System package not available, building from source..."
+          # Install build dependencies
+          sudo apt-get install -y build-essential cmake git ninja-build libssl-dev pkg-config
+          
+          # Clone and build liboqs (optimized for our needs)
+          git clone --depth 1 --branch main https://github.com/open-quantum-safe/liboqs.git
+          cd liboqs
+          mkdir build && cd build
+          
+          # Build only the algorithms we need (ML-KEM-768, ML-DSA-65)
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DOQS_USE_OPENSSL=ON \
+            -DOQS_BUILD_ONLY_LIB=ON \
+            -DOQS_DIST_BUILD=ON \
+            -DOQS_OPT_TARGET=generic \
+            -DBUILD_SHARED_LIBS=ON \
+            -DOQS_ENABLE_KEM_KYBER=ON \
+            -DOQS_ENABLE_SIG_DILITHIUM=ON \
+            -DOQS_ENABLE_KEM_KYBER_768=ON \
+            -DOQS_ENABLE_SIG_DILITHIUM_3=ON \
+            -DOQS_ENABLE_KEM_KYBER_512=OFF \
+            -DOQS_ENABLE_KEM_KYBER_1024=OFF \
+            -DOQS_ENABLE_SIG_DILITHIUM_2=OFF \
+            -DOQS_ENABLE_SIG_DILITHIUM_5=OFF
+          
+          make -j$(nproc)
+          sudo make install
+          sudo ldconfig
+          echo "✅ liboqs built from source with optimizations!"
+        fi
 
     - name: Install Python dependencies
       run: |
@@ -57,12 +99,55 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install liboqs (pre-built package)
+    - name: Cache liboqs installation
+      id: cache-liboqs-c
+      uses: actions/cache@v4
+      with:
+        path: /usr/local/lib/liboqs* /usr/local/include/oqs
+        key: liboqs-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          liboqs-${{ runner.os }}-
+
+    - name: Install liboqs (system package + fallback)
+      if: steps.cache-liboqs-c.outputs.cache-hit != 'true'
       run: |
-        # Same simple installation - no complex artifacts or caching needed!
-        wget https://github.com/open-quantum-safe/liboqs/releases/download/v0.8.0/liboqs-0.8.0-linux-x64.tar.gz
-        sudo tar -xzf liboqs-0.8.0-linux-x64.tar.gz -C /usr/local
-        sudo ldconfig
+        echo "Attempting to install liboqs from system packages..."
+        # Try system package manager first (fastest)
+        if sudo apt-get update && sudo apt-get install -y liboqs-dev 2>/dev/null; then
+          echo "✅ liboqs installed from system packages in seconds!"
+          sudo ldconfig
+        else
+          echo "System package not available, building from source..."
+          # Install build dependencies
+          sudo apt-get install -y build-essential cmake git ninja-build libssl-dev pkg-config
+          
+          # Clone and build liboqs (optimized for our needs)
+          git clone --depth 1 --branch main https://github.com/open-quantum-safe/liboqs.git
+          cd liboqs
+          mkdir build && cd build
+          
+          # Build only the algorithms we need (ML-KEM-768, ML-DSA-65)
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DOQS_USE_OPENSSL=ON \
+            -DOQS_BUILD_ONLY_LIB=ON \
+            -DOQS_DIST_BUILD=ON \
+            -DOQS_OPT_TARGET=generic \
+            -DBUILD_SHARED_LIBS=ON \
+            -DOQS_ENABLE_KEM_KYBER=ON \
+            -DOQS_ENABLE_SIG_DILITHIUM=ON \
+            -DOQS_ENABLE_KEM_KYBER_768=ON \
+            -DOQS_ENABLE_SIG_DILITHIUM_3=ON \
+            -DOQS_ENABLE_KEM_KYBER_512=OFF \
+            -DOQS_ENABLE_KEM_KYBER_1024=OFF \
+            -DOQS_ENABLE_SIG_DILITHIUM_2=OFF \
+            -DOQS_ENABLE_SIG_DILITHIUM_5=OFF
+          
+          make -j$(nproc)
+          sudo make install
+          sudo ldconfig
+          echo "✅ liboqs built from source with optimizations!"
+        fi
 
     - name: Build C demos
       run: |
