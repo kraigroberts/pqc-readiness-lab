@@ -14,17 +14,15 @@ def setup_logging(verbose: bool = False) -> None:
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(
         level=level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.StreamHandler(sys.stdout)
-        ]
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)],
     )
 
 
 @click.group()
 @click.version_option(version=__version__, prog_name="pqc-lab")
-@click.option('--verbose', '-v', is_flag=True, help='Enable verbose output')
-@click.option('--config', type=click.Path(exists=True), help='Configuration file path')
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+@click.option("--config", type=click.Path(exists=True), help="Configuration file path")
 def main(verbose: bool, config: str | None = None) -> None:
     """Post-Quantum Cryptography Readiness Lab CLI.
 
@@ -38,17 +36,31 @@ def main(verbose: bool, config: str | None = None) -> None:
 
     # Check liboqs availability
     if not lib.is_available():
-        click.echo("Warning: liboqs library not available. PQC operations will not work.", err=True)
+        click.echo(
+            "Warning: liboqs library not available. PQC operations will not work.",
+            err=True,
+        )
 
 
 @main.command()
-@click.option('--alg', 'algorithm',
-              type=click.Choice(['mlkem512', 'mlkem768', 'mlkem1024', 'mldsa44', 'mldsa65', 'mldsa87']),
-              default='mlkem768', help='Algorithm to benchmark')
-@click.option('--count', type=int, default=100, help='Number of iterations')
-@click.option('--output', type=click.Path(), help='Output file for results')
-@click.option('--format', 'output_format', type=click.Choice(['json', 'text', 'csv']),
-              default='json', help='Output format')
+@click.option(
+    "--alg",
+    "algorithm",
+    type=click.Choice(
+        ["mlkem512", "mlkem768", "mlkem1024", "mldsa44", "mldsa65", "mldsa87"]
+    ),
+    default="mlkem768",
+    help="Algorithm to benchmark",
+)
+@click.option("--count", type=int, default=100, help="Number of iterations")
+@click.option("--output", type=click.Path(), help="Output file for results")
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["json", "text", "csv"]),
+    default="json",
+    help="Output format",
+)
 def bench(algorithm: str, count: int, output: str | None, output_format: str) -> None:
     """Run benchmarks for PQC algorithms."""
     click.echo(f"Benchmarking {algorithm} with {count} iterations...")
@@ -61,7 +73,7 @@ def bench(algorithm: str, count: int, output: str | None, output_format: str) ->
         "algorithm": algorithm,
         "iterations": count,
         "format": output_format,
-        "status": "not_implemented"
+        "status": "not_implemented",
     }
 
     if output:
@@ -74,14 +86,40 @@ def bench(algorithm: str, count: int, output: str | None, output_format: str) ->
 
 
 @main.command()
-@click.option('--alg', 'algorithm',
-              type=click.Choice(['mldsa44', 'mldsa65', 'mldsa87']),
-              default='mldsa65', help='Signature algorithm to use')
-@click.option('--pub', 'public_key', type=click.Path(), required=True, help='Public key file')
-@click.option('--priv', 'private_key', type=click.Path(), required=True, help='Private key file')
-@click.option('--in', 'input_file', type=click.Path(exists=True), required=True, help='File to sign')
-@click.option('--sig', 'signature_file', type=click.Path(), required=True, help='Output signature file')
-def sign(algorithm: str, public_key: str, private_key: str, input_file: str, signature_file: str) -> None:
+@click.option(
+    "--alg",
+    "algorithm",
+    type=click.Choice(["mldsa44", "mldsa65", "mldsa87"]),
+    default="mldsa65",
+    help="Signature algorithm to use",
+)
+@click.option(
+    "--pub", "public_key", type=click.Path(), required=True, help="Public key file"
+)
+@click.option(
+    "--priv", "private_key", type=click.Path(), required=True, help="Private key file"
+)
+@click.option(
+    "--in",
+    "input_file",
+    type=click.Path(exists=True),
+    required=True,
+    help="File to sign",
+)
+@click.option(
+    "--sig",
+    "signature_file",
+    type=click.Path(),
+    required=True,
+    help="Output signature file",
+)
+def sign(
+    algorithm: str,
+    public_key: str,
+    private_key: str,
+    input_file: str,
+    signature_file: str,
+) -> None:
     """Sign a file using PQC signature algorithm."""
     click.echo(f"Signing {input_file} with {algorithm}...")
 
@@ -98,13 +136,37 @@ def sign(algorithm: str, public_key: str, private_key: str, input_file: str, sig
 
 
 @main.command()
-@click.option('--alg', 'algorithm',
-              type=click.Choice(['mldsa44', 'mldsa65', 'mldsa87']),
-              default='mldsa65', help='Signature algorithm to use')
-@click.option('--pub', 'public_key', type=click.Path(exists=True), required=True, help='Public key file')
-@click.option('--in', 'input_file', type=click.Path(exists=True), required=True, help='File to verify')
-@click.option('--sig', 'signature_file', type=click.Path(exists=True), required=True, help='Signature file')
-def verify(algorithm: str, public_key: str, input_file: str, signature_file: str) -> None:
+@click.option(
+    "--alg",
+    "algorithm",
+    type=click.Choice(["mldsa44", "mldsa65", "mldsa87"]),
+    default="mldsa65",
+    help="Signature algorithm to use",
+)
+@click.option(
+    "--pub",
+    "public_key",
+    type=click.Path(exists=True),
+    required=True,
+    help="Public key file",
+)
+@click.option(
+    "--in",
+    "input_file",
+    type=click.Path(exists=True),
+    required=True,
+    help="File to verify",
+)
+@click.option(
+    "--sig",
+    "signature_file",
+    type=click.Path(exists=True),
+    required=True,
+    help="Signature file",
+)
+def verify(
+    algorithm: str, public_key: str, input_file: str, signature_file: str
+) -> None:
     """Verify a file signature using PQC signature algorithm."""
     click.echo(f"Verifying {input_file} with {algorithm}...")
 
@@ -116,13 +178,25 @@ def verify(algorithm: str, public_key: str, input_file: str, signature_file: str
 
 
 @main.command()
-@click.option('--alg', 'algorithm',
-              type=click.Choice(['mlkem512', 'mlkem768', 'mlkem1024']),
-              default='mlkem768', help='KEM algorithm to use')
-@click.option('--pub', 'public_key', type=click.Path(), help='Public key file')
-@click.option('--priv', 'private_key', type=click.Path(), help='Private key file')
-@click.option('--out', 'output_dir', type=click.Path(), default='artifacts', help='Output directory')
-def keygen(algorithm: str, public_key: str | None, private_key: str | None, output_dir: str) -> None:
+@click.option(
+    "--alg",
+    "algorithm",
+    type=click.Choice(["mlkem512", "mlkem768", "mlkem1024"]),
+    default="mlkem768",
+    help="KEM algorithm to use",
+)
+@click.option("--pub", "public_key", type=click.Path(), help="Public key file")
+@click.option("--priv", "private_key", type=click.Path(), help="Private key file")
+@click.option(
+    "--out",
+    "output_dir",
+    type=click.Path(),
+    default="artifacts",
+    help="Output directory",
+)
+def keygen(
+    algorithm: str, public_key: str | None, private_key: str | None, output_dir: str
+) -> None:
     """Generate keypair for PQC algorithm."""
     click.echo(f"Generating {algorithm} keypair...")
 
@@ -152,11 +226,15 @@ def handshake() -> None:
 
 
 @handshake.command()
-@click.option('--host', default='127.0.0.1', help='Host to bind to')
-@click.option('--port', default=5555, help='Port to bind to')
-@click.option('--alg', 'algorithm',
-              type=click.Choice(['mlkem512', 'mlkem768', 'mlkem1024']),
-              default='mlkem768', help='KEM algorithm to use')
+@click.option("--host", default="127.0.0.1", help="Host to bind to")
+@click.option("--port", default=5555, help="Port to bind to")
+@click.option(
+    "--alg",
+    "algorithm",
+    type=click.Choice(["mlkem512", "mlkem768", "mlkem1024"]),
+    default="mlkem768",
+    help="KEM algorithm to use",
+)
 def server(host: str, port: int, algorithm: str) -> None:
     """Start handshake server."""
     click.echo(f"Starting {algorithm} handshake server on {host}:{port}...")
@@ -167,12 +245,16 @@ def server(host: str, port: int, algorithm: str) -> None:
 
 
 @handshake.command()
-@click.option('--host', default='127.0.0.1', help='Server host')
-@click.option('--port', default=5555, help='Server port')
-@click.option('--alg', 'algorithm',
-              type=click.Choice(['mlkem512', 'mlkem768', 'mlkem1024']),
-              default='mlkem768', help='KEM algorithm to use')
-@click.option('--message', default='Hello PQC!', help='Message to send')
+@click.option("--host", default="127.0.0.1", help="Server host")
+@click.option("--port", default=5555, help="Server port")
+@click.option(
+    "--alg",
+    "algorithm",
+    type=click.Choice(["mlkem512", "mlkem768", "mlkem1024"]),
+    default="mlkem768",
+    help="KEM algorithm to use",
+)
+@click.option("--message", default="Hello PQC!", help="Message to send")
 def client(host: str, port: int, algorithm: str, message: str) -> None:
     """Connect to handshake server."""
     click.echo(f"Connecting to {algorithm} handshake server at {host}:{port}...")
@@ -223,5 +305,5 @@ def list() -> None:
             click.echo(f"  {dsa}: NIST Level {details['claimed_nist_level']}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
