@@ -1,5 +1,8 @@
 # PQC Readiness Lab
 
+![CI](https://github.com/kraigroberts/pqc-readiness-lab/actions/workflows/ci.yml/badge.svg)
+![CodeQL](https://github.com/kraigroberts/pqc-readiness-lab/actions/workflows/codeql.yml/badge.svg)
+
 A practical demonstration of Post-Quantum Cryptography readiness using NIST PQC algorithms (ML-KEM/Kyber and ML-DSA/Dilithium) via the Open Quantum Safe library.
 
 ## 🎯 Mission
