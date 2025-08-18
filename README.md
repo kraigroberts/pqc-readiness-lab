@@ -86,6 +86,24 @@ pqc-lab handshake server --host 127.0.0.1 --port 5555
 pqc-lab handshake client --host 127.0.0.1 --port 5555 --message "Hello PQC!"
 ```
 
+The handshake derives a shared secret using ML-KEM (Kyber) and uses it as a ChaCha20-Poly1305 key to encrypt a single message.
+
+### Makefile quick commands
+```bash
+# Setup venv and install
+make install
+
+# Lint, type, and tests
+make test-all
+
+# Benchmarks (writes JSON to artifacts/)
+make bench
+
+# Docker
+make docker-build
+make docker-run
+```
+
 ## 🏗️ Architecture
 
 The lab consists of several components:
