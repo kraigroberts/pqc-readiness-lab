@@ -73,7 +73,16 @@ def bench(algorithm: str, count: int, output: str | None, output_format: str) ->
         click.echo("liboqs not available; cannot run benchmarks", err=True)
         return
 
-    results: dict[str, object] = {"algorithm": algorithm, "iterations": int(count)}
+    import platform as _platform
+    results: dict[str, object] = {
+        "algorithm": algorithm,
+        "iterations": int(count),
+        "env": {
+            "python": _platform.python_version(),
+            "platform": _platform.platform(),
+            "liboqs_version": lib.get_version() if lib.is_available() else "unknown",
+        },
+    }
 
     if algorithm.startswith("mlkem"):
         keypair = lib.generate_keypair(algorithm)
@@ -132,20 +141,103 @@ def bench(algorithm: str, count: int, output: str | None, output_format: str) ->
             "avg_verification": sum(verify_times) / len(verify_times),
         })
 
-    text = _json.dumps(results)
+    # Render output
+    if output_format == "json":
+        rendered = _json.dumps(results)
+        default_ext = ".json"
+    elif output_format == "csv":
+        if algorithm.startswith("mlkem"):
+            rendered = (
+                "algorithm,iterations,avg_encapsulation,avg_decapsulation\n"
+                f"{algorithm},{count},{results['avg_encapsulation']:.6f},{results['avg_decapsulation']:.6f}"
+            )
+        else:
+            rendered = (
+                "algorithm,iterations,avg_signing,avg_verification\n"
+                f"{algorithm},{count},{results['avg_signing']:.6f},{results['avg_verification']:.6f}"
+            )
+        default_ext = ".csv"
+    else:
+        if algorithm.startswith("mlkem"):
+            rendered = (
+                f"KEM {algorithm}: {count} iters\n"
+                f"  avg encaps: {results['avg_encapsulation']:.6f}s\n"
+                f"  avg decaps: {results['avg_decapsulation']:.6f}s\n"
+            )
+        else:
+            rendered = (
+                f"DSA {algorithm}: {count} iters\n"
+                f"  avg sign:   {results['avg_signing']:.6f}s\n"
+                f"  avg verify: {results['avg_verification']:.6f}s\n"
+            )
+        default_ext = ".txt"
+
+    # Save to file
     if output:
         p = Path(output)
     else:
-        # default artifacts path
         artifacts = config.get_artifacts_dir()
         artifacts.mkdir(parents=True, exist_ok=True)
         import datetime as _dt
 
         stamp = _dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
-        p = artifacts / f"bench_{algorithm}_{stamp}.json"
+        p = artifacts / f"bench_{algorithm}_{stamp}{default_ext}"
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(text)
-    click.echo(text)
+    p.write_text(rendered)
+    click.echo(rendered)
+
+
+@main.command()
+@click.option("--kem", default="mlkem768", type=click.Choice(["mlkem512", "mlkem768", "mlkem1024"]))
+@click.option("--dsa", default="mldsa65", type=click.Choice(["mldsa44", "mldsa65", "mldsa87"]))
+def show(kem: str, dsa: str) -> None:
+    """Quick demo: one KEM roundtrip and one DSA sign/verify."""
+    import time as _time
+    if not lib.is_available():
+        click.echo("liboqs not available")
+        return
+    # KEM
+    kp = lib.generate_keypair(kem)
+    if not kp:
+        click.echo("kem keygen failed")
+        return
+    pk, sk = kp
+    t0 = _time.perf_counter()
+    enc = lib.encapsulate_key(kem, pk)
+    t1 = _time.perf_counter()
+    if not enc:
+        click.echo("kem encaps failed")
+        return
+    ct, ss = enc
+    t2 = _time.perf_counter()
+    ss2 = lib.decapsulate_key(kem, ct, sk)
+    t3 = _time.perf_counter()
+    if not ss2:
+        click.echo("kem decaps failed")
+        return
+    # DSA
+    kp2 = lib.generate_keypair(dsa)
+    if not kp2:
+        click.echo("dsa keygen failed")
+        return
+    pk2, sk2 = kp2
+    msg = b"hello pqc"
+    t4 = _time.perf_counter()
+    sig = lib.sign_message(dsa, msg, sk2)
+    t5 = _time.perf_counter()
+    if not sig:
+        click.echo("sign failed")
+        return
+    t6 = _time.perf_counter()
+    ok = lib.verify_signature(dsa, msg, sig, pk2)
+    t7 = _time.perf_counter()
+    if not ok:
+        click.echo("verify failed")
+        return
+    click.echo(
+        f"KEM {kem}: encaps {t1-t0:.6f}s, decaps {t3-t2:.6f}s\n"
+        f"DSA {dsa}: sign {t5-t4:.6f}s, verify {t7-t6:.6f}s"
+    )
 
 
 @main.command()
