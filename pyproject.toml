@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pqc-readiness-lab"
-version = "0.1.0"
+version = "0.1.1"
 description = "Post-Quantum Cryptography readiness lab with NIST PQC algorithms"
 readme = "README.md"
 license = {text = "MIT"}

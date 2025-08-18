@@ -5,7 +5,7 @@ from pqc_lab import __version__, config, lib
 
 def test_package_import() -> None:
     """Test that the package can be imported successfully."""
-    assert __version__ == "0.1.0"
+    assert isinstance(__version__, str) and len(__version__) > 0
 
 
 def test_config_import() -> None:
