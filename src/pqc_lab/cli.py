@@ -25,8 +25,9 @@ def setup_logging(verbose: bool = False) -> None:
 @click.group()
 @click.version_option(version=__version__, prog_name="pqc-lab")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
-@click.option("--config", type=click.Path(exists=True), help="Configuration file path")
-def main(verbose: bool, config: str | None = None) -> None:
+@click.option("--config", type=click.Path(exists=True, dir_okay=False), help="Config JSON file")
+@click.pass_context
+def main(ctx: click.Context, verbose: bool, config: str | None = None) -> None:
     """Post-Quantum Cryptography Readiness Lab CLI.
 
     A practical demonstration of PQC readiness using NIST PQC algorithms.
@@ -34,8 +35,15 @@ def main(verbose: bool, config: str | None = None) -> None:
     setup_logging(verbose)
 
     if config:
-        # TODO: Load configuration from file
-        pass
+        try:
+            cfg_path = Path(config)
+            from .config import Config as AppConfig
+
+            loaded = AppConfig.from_json_file(cfg_path)
+            # Store loaded config in Click context without mutating global state
+            ctx.obj = loaded
+        except Exception as e:
+            click.echo(f"Failed to load config: {e}", err=True)
 
     # Check liboqs availability
     if not lib.is_available():
@@ -415,7 +423,8 @@ def client(host: str, port: int, algorithm: str, message: str) -> None:
 
 
 @main.command()
-def info() -> None:
+@click.pass_obj
+def info(cfg_obj=None) -> None:
     """Show system information and capabilities."""
     click.echo("PQC Readiness Lab System Information")
     click.echo("=" * 40)

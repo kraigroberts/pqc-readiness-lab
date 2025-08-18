@@ -1,8 +1,10 @@
 """Configuration settings for PQC Readiness Lab."""
 
 from pathlib import Path
+import json
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class AlgorithmConfig(BaseModel):
@@ -89,11 +91,16 @@ class Config(BaseModel):
     log_level: str = Field(default="INFO", description="Logging level")
     verbose: bool = Field(default=False, description="Verbose output")
 
-    class Config:
-        """Pydantic configuration."""
+    # Pydantic v2 configuration
+    model_config = ConfigDict(validate_assignment=True, extra="forbid")
 
-        validate_assignment = True
-        extra = "forbid"
+    @classmethod
+    def from_json_file(cls, path: Path) -> "Config":
+        data = json.loads(path.read_text())
+        return cls(**data)
+
+    def merge(self, overrides: dict[str, Any]) -> "Config":
+        return self.model_copy(update=overrides)
 
 
 # Global configuration instance
