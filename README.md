@@ -25,6 +25,9 @@ cd pqc-readiness-lab
 # Build and run with Docker
 docker build -t pqc-lab .
 docker run --rm pqc-lab pqc-lab --help
+
+# Optional Streamlit UI (hosted from the image shell)
+docker run -p 8501:8501 --rm pqc-lab bash -lc "streamlit run app/streamlit_app.py --server.port 8501 --server.headless true"
 ```
 
 ### Option 2: Native Build
@@ -55,6 +58,9 @@ pip install -e .
 
 # Verify installation
 pqc-lab --help
+
+# Optional: Streamlit UI
+streamlit run app/streamlit_app.py
 ```
 
 ## 📚 Usage Examples
