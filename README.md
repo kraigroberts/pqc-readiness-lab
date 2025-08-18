@@ -6,7 +6,7 @@ A practical demonstration of Post-Quantum Cryptography readiness using NIST PQC 
 
 Demonstrate hands-on ability to transition products/systems to NIST PQC by implementing:
 - **Key Encapsulation Mechanisms (KEM)**: ML-KEM-768 for secure key exchange
-- **Digital Signature Algorithms (DSA)**: ML-DSA-3 for artifact integrity
+- **Digital Signature Algorithms (DSA)**: ML-DSA-65 for artifact integrity
 - **Practical Applications**: Client/server handshake, file signing/verification
 - **Performance Analysis**: Benchmarks and validation tools
 
@@ -61,14 +61,14 @@ pqc-lab --help
 # Run KEM benchmarks
 pqc-lab bench --alg mlkem768 --count 100
 
-# Run signature benchmarks  
-pqc-lab bench --alg mldsa3 --count 100
+# Run signature benchmarks
+pqc-lab bench --alg mldsa65 --count 100
 ```
 
 ### File Signing & Verification
 ```bash
 # Generate keypair
-pqc-lab keygen --alg mldsa3 --pub artifacts/dsa.pub --priv artifacts/dsa.priv
+pqc-lab keygen --alg mldsa65 --pub artifacts/dsa.pub --priv artifacts/dsa.priv
 
 # Sign a file
 pqc-lab sign --in README.md --sig artifacts/README.md.sig --pub artifacts/dsa.pub --priv artifacts/dsa.priv
