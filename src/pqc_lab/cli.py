@@ -135,11 +135,17 @@ def bench(algorithm: str, count: int, output: str | None, output_format: str) ->
     text = _json.dumps(results)
     if output:
         p = Path(output)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(text)
-        click.echo(text)
     else:
-        click.echo(text)
+        # default artifacts path
+        artifacts = config.get_artifacts_dir()
+        artifacts.mkdir(parents=True, exist_ok=True)
+        import datetime as _dt
+
+        stamp = _dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+        p = artifacts / f"bench_{algorithm}_{stamp}.json"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(text)
+    click.echo(text)
 
 
 @main.command()
