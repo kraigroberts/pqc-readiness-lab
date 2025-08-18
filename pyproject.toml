@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pqc-readiness-lab"
+version = "0.1.0"
+description = "Post-Quantum Cryptography Readiness Lab (ML-KEM/ML-DSA via liboqs)"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Kraig Roberts" }]
+license = { file = "LICENSE" }
+dependencies = [
+  "click>=8.1",
+  "pydantic>=2.6",
+  "cryptography>=42",
+]
+
+[project.urls]
+Homepage = "https://github.com/kraigroberts/pqc-readiness-lab"
+
+[project.scripts]
+pqc-lab = "pqc_lab.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["pqc_lab*"]
+
+[tool.setuptools.package-data]
+pqc_lab = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+no_implicit_optional = true
+check_untyped_defs = true
+show_error_codes = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+fix = true
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+

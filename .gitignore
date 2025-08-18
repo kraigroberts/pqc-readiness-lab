@@ -1,3 +1,15 @@
+artifacts/
+build/
+dist/
+.venv/
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
