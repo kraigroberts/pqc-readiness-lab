@@ -1,5 +1,7 @@
 """Command-line interface for PQC Readiness Lab."""
 
+from __future__ import annotations
+
 import logging
 import sys
 from pathlib import Path
@@ -62,27 +64,81 @@ def main(verbose: bool, config: str | None = None) -> None:
     help="Output format",
 )
 def bench(algorithm: str, count: int, output: str | None, output_format: str) -> None:
-    """Run benchmarks for PQC algorithms."""
-    click.echo(f"Benchmarking {algorithm} with {count} iterations...")
+    """Run simple benchmarks for PQC algorithms."""
+    import json as _json
+    import time as _time
 
-    # TODO: Implement benchmarking logic
-    click.echo("Benchmarking not yet implemented in milestone 1")
+    if not lib.is_available():
+        click.echo("liboqs not available; cannot run benchmarks", err=True)
+        return
 
-    # Placeholder result (not yet implemented)
-    _ = {
-        "algorithm": algorithm,
-        "iterations": count,
-        "format": output_format,
-        "status": "not_implemented",
-    }
+    results: dict[str, object] = {"algorithm": algorithm, "iterations": int(count)}
 
-    if output:
-        output_path = Path(output)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        # TODO: Save results to file
-        click.echo(f"Results would be saved to {output}")
+    if algorithm.startswith("mlkem"):
+        keypair = lib.generate_keypair(algorithm)
+        if not keypair:
+            click.echo("failed to generate kem keypair", err=True)
+            return
+        pk, sk = keypair
+        enc_times: list[float] = []
+        dec_times: list[float] = []
+        for _ in range(count):
+            t0 = _time.perf_counter()
+            enc = lib.encapsulate_key(algorithm, pk)
+            t1 = _time.perf_counter()
+            if not enc:
+                click.echo("encapsulate failed", err=True)
+                return
+            ct, _ss = enc
+            enc_times.append(t1 - t0)
+            t2 = _time.perf_counter()
+            ss2 = lib.decapsulate_key(algorithm, ct, sk)
+            t3 = _time.perf_counter()
+            if ss2 is None:
+                click.echo("decapsulate failed", err=True)
+                return
+            dec_times.append(t3 - t2)
+        results.update({
+            "avg_encapsulation": sum(enc_times) / len(enc_times),
+            "avg_decapsulation": sum(dec_times) / len(dec_times),
+        })
     else:
-        click.echo("Results would be displayed here")
+        keypair = lib.generate_keypair(algorithm)
+        if not keypair:
+            click.echo("failed to generate sig keypair", err=True)
+            return
+        pk, sk = keypair
+        msg = b"benchmark message"
+        sign_times: list[float] = []
+        verify_times: list[float] = []
+        for _ in range(count):
+            t0 = _time.perf_counter()
+            sig = lib.sign_message(algorithm, msg, sk)
+            t1 = _time.perf_counter()
+            if not sig:
+                click.echo("sign failed", err=True)
+                return
+            sign_times.append(t1 - t0)
+            t2 = _time.perf_counter()
+            ok = lib.verify_signature(algorithm, msg, sig, pk)
+            t3 = _time.perf_counter()
+            if not ok:
+                click.echo("verify failed", err=True)
+                return
+            verify_times.append(t3 - t2)
+        results.update({
+            "avg_signing": sum(sign_times) / len(sign_times),
+            "avg_verification": sum(verify_times) / len(verify_times),
+        })
+
+    text = _json.dumps(results)
+    if output:
+        p = Path(output)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
+        click.echo(text)
+    else:
+        click.echo(text)
 
 
 @main.command()
@@ -121,18 +177,18 @@ def sign(
     signature_file: str,
 ) -> None:
     """Sign a file using PQC signature algorithm."""
-    click.echo(f"Signing {input_file} with {algorithm}...")
-
-    # TODO: Implement signing logic
-    click.echo("File signing not yet implemented in milestone 1")
-
-    # Create signature file directory if needed
-    sig_path = Path(signature_file)
-    sig_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # Placeholder signature file
-    sig_path.write_text(f"PLACEHOLDER_SIGNATURE_{algorithm}")
-    click.echo(f"Placeholder signature saved to {signature_file}")
+    if not lib.is_available():
+        click.echo("liboqs not available; cannot sign", err=True)
+        return
+    data = Path(input_file).read_bytes()
+    priv = Path(private_key).read_bytes()
+    sig = lib.sign_message(algorithm, data, priv)
+    if not sig:
+        click.echo("sign failed", err=True)
+        return
+    Path(signature_file).parent.mkdir(parents=True, exist_ok=True)
+    Path(signature_file).write_bytes(sig)
+    click.echo(f"signature written: {signature_file}")
 
 
 @main.command()
@@ -168,13 +224,14 @@ def verify(
     algorithm: str, public_key: str, input_file: str, signature_file: str
 ) -> None:
     """Verify a file signature using PQC signature algorithm."""
-    click.echo(f"Verifying {input_file} with {algorithm}...")
-
-    # TODO: Implement verification logic
-    click.echo("Signature verification not yet implemented in milestone 1")
-
-    # Placeholder verification
-    click.echo("Placeholder verification completed")
+    if not lib.is_available():
+        click.echo("liboqs not available; cannot verify", err=True)
+        return
+    data = Path(input_file).read_bytes()
+    pub = Path(public_key).read_bytes()
+    sig = Path(signature_file).read_bytes()
+    ok = lib.verify_signature(algorithm, data, sig, pub)
+    click.echo("OK" if ok else "FAIL")
 
 
 @main.command()
@@ -198,25 +255,24 @@ def keygen(
     algorithm: str, public_key: str | None, private_key: str | None, output_dir: str
 ) -> None:
     """Generate keypair for PQC algorithm."""
-    click.echo(f"Generating {algorithm} keypair...")
-
-    # TODO: Implement key generation logic
-    click.echo("Key generation not yet implemented in milestone 1")
-
+    if not lib.is_available():
+        click.echo("liboqs not available; cannot keygen", err=True)
+        return
     # Set default filenames if not provided
     if not public_key:
         public_key = f"{output_dir}/{algorithm}.pub"
     if not private_key:
         private_key = f"{output_dir}/{algorithm}.priv"
 
-    # Create output directory
+    kp = lib.generate_keypair(algorithm)
+    if not kp:
+        click.echo("keygen failed", err=True)
+        return
+    pk, sk = kp
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-
-    # Placeholder key files
-    Path(public_key).write_text(f"PLACEHOLDER_PUBLIC_KEY_{algorithm}")
-    Path(private_key).write_text(f"PLACEHOLDER_PRIVATE_KEY_{algorithm}")
-
-    click.echo(f"Placeholder keys saved to {public_key} and {private_key}")
+    Path(public_key).write_bytes(pk)
+    Path(private_key).write_bytes(sk)
+    click.echo(f"keys written: {public_key}, {private_key}")
 
 
 @main.group()
@@ -286,8 +342,8 @@ def info() -> None:
     click.echo(f"Default DSA: {config.get_default_dsa()}")
 
 
-@main.command()
-def list() -> None:
+@main.command(name="list")
+def list_cmd() -> None:
     """List supported algorithms and their details."""
     click.echo("Supported PQC Algorithms")
     click.echo("=" * 30)
