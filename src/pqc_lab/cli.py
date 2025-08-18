@@ -9,6 +9,7 @@ from pathlib import Path
 import click
 
 from . import __version__, config, lib
+from .handshake import HandshakeParams, run_client, run_server
 
 
 def setup_logging(verbose: bool = False) -> None:
@@ -293,11 +294,8 @@ def handshake() -> None:
 )
 def server(host: str, port: int, algorithm: str) -> None:
     """Start handshake server."""
-    click.echo(f"Starting {algorithm} handshake server on {host}:{port}...")
-
-    # TODO: Implement handshake server
-    click.echo("Handshake server not yet implemented in milestone 1")
-    click.echo("Server would listen for connections here")
+    params = HandshakeParams(host=host, port=port, algorithm=algorithm)
+    run_server(params)
 
 
 @handshake.command()
@@ -313,11 +311,9 @@ def server(host: str, port: int, algorithm: str) -> None:
 @click.option("--message", default="Hello PQC!", help="Message to send")
 def client(host: str, port: int, algorithm: str, message: str) -> None:
     """Connect to handshake server."""
-    click.echo(f"Connecting to {algorithm} handshake server at {host}:{port}...")
-
-    # TODO: Implement handshake client
-    click.echo("Handshake client not yet implemented in milestone 1")
-    click.echo(f"Would send message: {message}")
+    params = HandshakeParams(host=host, port=port, algorithm=algorithm)
+    reply = run_client(params, message.encode())
+    click.echo(reply.decode())
 
 
 @main.command()
